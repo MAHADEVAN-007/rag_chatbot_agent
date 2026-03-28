@@ -1,0 +1,920 @@
+{
+  "name": "RAG-CHATBOT-AGENT",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -640,
+        368
+      ],
+      "id": "2b43b1e1-d4e6-49e8-a235-43d1c6881465",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f415838c-55b5-4692-8621-07fd801b6006",
+              "name": "=folder_id",
+              "value": "YOUR_GOOGLE_DRIVE_FOLDER_ID",
+              "type": "string"
+            },
+            {
+              "id": "1074deff-f57c-4da6-8f82-db6390da0fcb",
+              "name": "=qdrant_collection",
+              "value": "=cv_rag_docs",
+              "type": "string"
+            },
+            {
+              "id": "abc26406-20b0-49e2-aabb-677461e01841",
+              "name": "=qdrant_url",
+              "value": "YOUR_QDRANT_CLUSTER_URL",
+              "type": "string"
+            },
+            {
+              "id": "ceb82c6f-fe86-40db-8a4f-fb61bf602a6f",
+              "name": "=chunk_size",
+              "value": "=1200",
+              "type": "number"
+            },
+            {
+              "id": "911e15c6-84dd-4d7e-8d2b-cd493d7a763f",
+              "name": "=chunk_overlap",
+              "value": 200,
+              "type": "number"
+            },
+            {
+              "id": "df3937da-a53b-4bf7-8a87-c1485abac677",
+              "name": "max_metadata_chars",
+              "value": "={{ 12000 }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -480,
+        368
+      ],
+      "id": "1ec74302-c911-471f-9b7b-32826b7efb0c",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "returnAll": true,
+        "filter": {
+          "driveId": {
+            "mode": "list",
+            "value": "My Drive"
+          },
+          "folderId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "root"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -320,
+        368
+      ],
+      "id": "3fb957f9-117e-493f-bf57-06a912e41dae",
+      "name": "Search files and folders",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "MjPcio0n1vbaMLgJ",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "9593ee9a-7171-4bcd-8d5f-bb51cb50fc23",
+              "leftValue": "={{ $json.name }}",
+              "rightValue": "=.pdf",
+              "operator": {
+                "type": "string",
+                "operation": "endsWith"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        -160,
+        368
+      ],
+      "id": "5eb6124a-0e81-4b0f-b966-da0c69bcec0a",
+      "name": "Filter"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -16,
+        368
+      ],
+      "id": "36258dab-6bfd-4f79-ad1f-270b0aea8c9a",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        160,
+        448
+      ],
+      "id": "3daedb04-ee19-49a7-bb00-4b31cb19210f",
+      "name": "Download file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "MjPcio0n1vbaMLgJ",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        320,
+        448
+      ],
+      "id": "98c464bb-3372-4427-be5a-ac6924a70d2d",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "text": "={{ $('Code in JavaScript').first().json.clean_text.slice(0, 12000) }}",
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"title\": \"\",\n  \"summary\": \"\",\n  \"main_topics\": [],\n  \"keywords\": [],\n  \"document_type\": \"\",\n  \"audience\": \"\",\n  \"important_entities\": [],\n  \"action_items\": [],\n  \"risks\": [],\n  \"dates\": []\n}\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        384,
+        656
+      ],
+      "id": "6e4f833a-b3f0-494a-b03c-722747718620",
+      "name": "Information Extractor"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        720,
+        464
+      ],
+      "id": "60360412-23e4-4a42-a32e-7762bb713d0c",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "const meta = $json.output ?? $json;\n\nconst toArray = (value) => {\n  if (Array.isArray(value)) return value;\n  if (typeof value === 'string' && value.trim()) {\n    return value.split(',').map(s => s.trim()).filter(Boolean);\n  }\n  return [];\n};\n\nreturn [{\n  json: {\n    ...$json,\n    title: meta.title ?? '',\n    summary: meta.summary ?? '',\n    main_topics: toArray(meta.main_topics),\n    keywords: toArray(meta.keywords),\n    metadata: meta,\n    document_type: meta.document_type ?? '',\n    audience: meta.audience ?? '',\n    important_entities: toArray(meta.important_entities),\n    action_items: toArray(meta.action_items),\n    risks: toArray(meta.risks),\n    dates: toArray(meta.dates),\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        864,
+        464
+      ],
+      "id": "e3297e6b-141c-49b6-a5d1-4ac28ed04da5",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "={{ $('Edit Fields').first().json.qdrant_collection }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1.3,
+      "position": [
+        1024,
+        464
+      ],
+      "id": "e4728ec9-fae8-4ebe-b427-7d2096f79248",
+      "name": "Qdrant Vector Store",
+      "credentials": {
+        "qdrantApi": {
+          "id": "dYVUl8YXx1ktPBTI",
+          "name": "Qdrant account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "=sentence-transformers/all-MiniLM-L6-v2",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsHuggingFaceInference",
+      "typeVersion": 1,
+      "position": [
+        464,
+        1024
+      ],
+      "id": "2cbfa6ce-6654-41b5-9cfe-71723c62efc3",
+      "name": "Embeddings HuggingFace Inference",
+      "credentials": {
+        "huggingFaceApi": {
+          "id": "szzsXCuVdWUK4oN0",
+          "name": "Hugging Face account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonMode": "expressionData",
+        "jsonData": "=={{ $json.clean_text }}",
+        "textSplittingMode": "custom",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "=file_id",
+                "value": "={{ $json.id }}"
+              },
+              {
+                "name": "=file_name",
+                "value": "={{ $json.name }}"
+              },
+              {
+                "name": "=title",
+                "value": "={{ $json.title}}"
+              },
+              {
+                "name": "=summary",
+                "value": "={{ $json.summary }}"
+              },
+              {
+                "name": "=keywords",
+                "value": "={{ $json.keywords }}"
+              },
+              {
+                "name": "=main_topics",
+                "value": "={{ $json.main_topics }}"
+              },
+              {
+                "name": "=indexed_at",
+                "value": "={{ $json.indexed_at }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        1088,
+        656
+      ],
+      "id": "be666b76-99f0-4c54-a511-d67559e31de6",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "chunkSize": 1200,
+        "chunkOverlap": 200,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        832
+      ],
+      "id": "a2d5f7da-0b4b-4ae8-af0c-0da79146114f",
+      "name": "Recursive Character Text Splitter"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1PBtrB4Oaaq-4XHjXjqJ6I8DWOipn0JpFuaApoO5OTUk",
+          "mode": "list",
+          "cachedResultName": "RAG Agent Workflow Logs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1PBtrB4Oaaq-4XHjXjqJ6I8DWOipn0JpFuaApoO5OTUk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "inside_logs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1PBtrB4Oaaq-4XHjXjqJ6I8DWOipn0JpFuaApoO5OTUk/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "file_id": "={{ $('Loop Over Items').item.json.id }}",
+            "file_name": "={{ $('Filter').item.json.name }}",
+            "status": "=indexed",
+            "collection": "={{ $('Edit Fields').item.json.qdrant_collection }}",
+            "pageContent": "={{ $('Merge').item.json.clean_text }}",
+            "timestamp": "={{ $now.toISO() }}",
+            "metadata": "={{ $('Code in JavaScript1').item.json.metadata }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "file_id",
+              "displayName": "file_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "file_name",
+              "displayName": "file_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "collection",
+              "displayName": "collection",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "metadata",
+              "displayName": "metadata",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "pageContent",
+              "displayName": "pageContent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1312,
+        464
+      ],
+      "id": "e48e67cc-8c76-4c8f-a319-17effab93e63",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "KYPDKAYCtrTMDb20",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1488,
+        464
+      ],
+      "id": "d7a8faf2-0716-40b4-b9f8-28c38de1f256",
+      "name": "Loop Over Items1"
+    },
+    {
+      "parameters": {
+        "sendTo": "=automationid001@gmail.com",
+        "subject": "=RAG ingestion complete",
+        "emailType": "text",
+        "message": "=Google Drive ingestion finished successfully. Collection: {{ $('Edit Fields').first().json.qdrant_collection }} Time: {{ $now.toISO() }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1712,
+        480
+      ],
+      "id": "02676d21-6e67-4290-8444-f64951fa2d0b",
+      "name": "Send a message",
+      "webhookId": "34bf8ea1-1279-411a-802d-7e0cb57fcea5",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "C214eXldS1OGUItn",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawText =\n  $json.text ??\n  $json.extractedText ??\n  Object.values($json).find(v => typeof v === 'string') ??\n  '';\n\nconst cleanText = rawText\n  .replace(/\\r/g, '')\n  .replace(/[ \\t]+/g, ' ')\n  .replace(/\\n{3,}/g, '\\n\\n')\n  .trim();\n\nreturn [{\n  json: {\n    ...$json,\n    clean_text: cleanText,\n    indexed_at: new Date().toISOString(),\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        496,
+        448
+      ],
+      "id": "c891ab2f-2539-4d4f-9c2b-965051190fa9",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -592,
+        624
+      ],
+      "id": "f2ed3b46-eb0a-4739-b545-2704329d7182",
+      "name": "When chat message received",
+      "webhookId": "0ac4f840-5cb2-42a6-8a5e-49a0e2231003"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a4f6ee6d-ed53-408c-972b-62e06b552797",
+              "name": "=Chat Result",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -112,
+        624
+      ],
+      "id": "3d769174-6865-458b-8f4e-28c049159f11",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 30
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -336,
+        832
+      ],
+      "id": "3af3771f-9a8b-47f9-828a-94a2f4b0c0b2",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Work with my Qdrant Collection",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "cv_rag_docs",
+          "mode": "list",
+          "cachedResultName": "cv_rag_docs"
+        },
+        "topK": 8,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1.3,
+      "position": [
+        -160,
+        832
+      ],
+      "id": "cc86fb1d-deb0-4ca2-a8fe-9f6356a81556",
+      "name": "Qdrant Vector Store1",
+      "credentials": {
+        "qdrantApi": {
+          "id": "dYVUl8YXx1ktPBTI",
+          "name": "Qdrant account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        368,
+        832
+      ],
+      "id": "1a0a978e-8f3e-4ec3-87c4-399ca34b6930",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "wJYtUsyJBnwFNeNH",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -528,
+        832
+      ],
+      "id": "9ce6ea8a-f3eb-4c58-be34-f760ee0f16ec",
+      "name": "Groq Chat Model1",
+      "credentials": {
+        "groqApi": {
+          "id": "wJYtUsyJBnwFNeNH",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "=Always use the Qdrant tool to search the documents before answering.\nIf the answer is not in the retrieved chunks, say you don’t know.\nMention the source file_name when possible.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -416,
+        624
+      ],
+      "id": "91461799-7ac7-43d7-81d8-44e08b8557c7",
+      "name": "Master Agent"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Search files and folders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search files and folders": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Information Extractor": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Qdrant Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Qdrant Vector Store": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings HuggingFace Inference": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Qdrant Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          },
+          {
+            "node": "Qdrant Vector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Qdrant Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items1": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Master Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Master Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Qdrant Vector Store1": {
+      "ai_tool": [
+        [
+          {
+            "node": "Master Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Master Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Master Agent": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "1748546c-4bb8-4792-abbf-2892df2b4240",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a4a611bf1f3c60ae9dca028a5c73e95e66db3d61ed872ff689b14a89f6428a5a"
+  },
+  "id": "LT92Mw1wtcQSvQdF",
+  "tags": []
+}
