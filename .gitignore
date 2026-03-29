@@ -1,0 +1,6 @@
+﻿.env
+*.env
+secrets.json
+*credentials*
+@" | Out-File -FilePath .gitignore -Encoding utf8
+
